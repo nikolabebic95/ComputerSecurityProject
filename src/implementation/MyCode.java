@@ -1,6 +1,7 @@
 package implementation;
 
 import code.GuiException;
+import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 import x509.v3.CodeV3;
 
 import java.util.Enumeration;
@@ -26,76 +27,76 @@ public class MyCode extends CodeV3 {
 
     @Override
     public int loadKeypair(String s) {
-        return 0;
+        throw new NotImplementedException();
     }
 
     @Override
     public boolean saveKeypair(String s) {
-        return false;
+        throw new NotImplementedException();
     }
 
     @Override
     public boolean removeKeypair(String s) {
-        return false;
+        throw new NotImplementedException();
     }
 
     @Override
     public boolean importKeypair(String s, String s1, String s2) {
-        return false;
+        throw new NotImplementedException();
     }
 
     @Override
     public boolean exportKeypair(String s, String s1, String s2) {
-        return false;
+        throw new NotImplementedException();
     }
 
     @Override
     public boolean importCertificate(String s, String s1) {
-        return false;
+        throw new NotImplementedException();
     }
 
     @Override
     public boolean exportCertificate(String s, String s1, int i, int i1) {
-        return false;
+        throw new NotImplementedException();
     }
 
     @Override
     public boolean exportCSR(String s, String s1, String s2) {
-        return false;
+        throw new NotImplementedException();
     }
 
     @Override
     public String importCSR(String s) {
-        return null;
+        throw new NotImplementedException();
     }
 
     @Override
     public boolean signCSR(String s, String s1, String s2) {
-        return false;
+        throw new NotImplementedException();
     }
 
     @Override
     public boolean importCAReply(String s, String s1) {
-        return false;
+        throw new NotImplementedException();
     }
 
     @Override
     public boolean canSign(String s) {
-        return false;
+        throw new NotImplementedException();
     }
 
     @Override
     public String getSubjectInfo(String s) {
-        return null;
+        throw new NotImplementedException();
     }
 
     @Override
     public String getCertPublicKeyAlgorithm(String s) {
-        return null;
+        throw new NotImplementedException();
     }
 
     @Override
     public String getCertPublicKeyParameter(String s) {
-        return null;
+        throw new NotImplementedException();
     }
 }
