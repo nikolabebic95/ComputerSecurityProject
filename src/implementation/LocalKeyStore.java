@@ -91,7 +91,7 @@ class LocalKeyStore {
     public boolean generateKeyPair(String alias) {
         try {
             KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA", "BC");
-
+            // TODO: Finish
             return true;
         } catch (NoSuchAlgorithmException | NoSuchProviderException e) {
             logException(e);
