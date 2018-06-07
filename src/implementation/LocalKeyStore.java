@@ -1,12 +1,13 @@
 package implementation;
 
+import sun.reflect.generics.reflectiveObjects.NotImplementedException;
+
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.security.KeyStore;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
+import java.security.*;
 import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 import java.util.Enumeration;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -37,8 +38,9 @@ class LocalKeyStore {
     private void createKeyStore() {
         try {
             keyStoreImpl = KeyStore.getInstance("pkcs12");
+            keyStoreImpl.load(null, PASSWORD);
             saveLocalKeyStoreToFile();
-        } catch (KeyStoreException e) {
+        } catch (KeyStoreException | CertificateException | NoSuchAlgorithmException | IOException e) {
             logException(e);
         }
     }
@@ -66,6 +68,44 @@ class LocalKeyStore {
         } catch (KeyStoreException e) {
             logException(e);
             return null;
+        }
+    }
+
+    // endregion
+
+    // region Certificates
+
+    public X509Certificate loadCertificate(String alias) {
+        try {
+            return (X509Certificate) keyStoreImpl.getCertificate(alias);
+        } catch (KeyStoreException e) {
+            logException(e);
+            return null;
+        }
+    }
+
+    int verifyCertificate(X509Certificate certificate) {
+        throw new NotImplementedException();
+    }
+
+    public boolean generateKeyPair(String alias) {
+        try {
+            KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA", "BC");
+
+            return true;
+        } catch (NoSuchAlgorithmException | NoSuchProviderException e) {
+            logException(e);
+            return false;
+        }
+    }
+
+    public boolean removeKeyPair(String alias) {
+        try {
+            keyStoreImpl.deleteEntry(alias);
+            return true;
+        } catch (KeyStoreException e) {
+            logException(e);
+            return false;
         }
     }
 

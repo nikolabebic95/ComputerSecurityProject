@@ -4,19 +4,35 @@ import code.GuiException;
 import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 import x509.v3.CodeV3;
 
+import java.security.cert.X509Certificate;
 import java.util.Enumeration;
 
 @SuppressWarnings("unused")
 public class MyCode extends CodeV3 {
 
-    private LocalKeyStore localKeyStore = new LocalKeyStore();
+    private LocalKeyStore localKeyStore;
+    private GuiHelper guiHelper;
+
+    private void initLocalKeyStore() {
+        if (localKeyStore == null) {
+            localKeyStore = new LocalKeyStore();
+        }
+    }
 
     public MyCode(boolean[] algorithm_conf, boolean[] extensions_conf, boolean extensions_rules) throws GuiException {
         super(algorithm_conf, extensions_conf, extensions_rules);
+        guiHelper = new GuiHelper(access);
+        initLocalKeyStore();
     }
 
     @Override
     public Enumeration<String> loadLocalKeystore() {
+        // Base constructor calls loadLocalKeystore during construction,
+        // so the keystore needs to be initialized. This wouldn't be possible
+        // if the keystore was initialized in the declaration, because java
+        // order of initialization specifies that first the base constructor
+        // is called, and then the child class is initialized.
+        initLocalKeyStore();
         return localKeyStore.loadLocalKeystore();
     }
 
@@ -26,18 +42,24 @@ public class MyCode extends CodeV3 {
     }
 
     @Override
-    public int loadKeypair(String s) {
-        throw new NotImplementedException();
+    public int loadKeypair(String alias) {
+        X509Certificate certificate = localKeyStore.loadCertificate(alias);
+        if (certificate == null) {
+            return ConstantsHelper.LOAD_ERROR;
+        }
+
+        guiHelper.show(certificate);
+        return localKeyStore.verifyCertificate(certificate);
     }
 
     @Override
-    public boolean saveKeypair(String s) {
-        throw new NotImplementedException();
+    public boolean saveKeypair(String alias) {
+        return localKeyStore.generateKeyPair(alias);
     }
 
     @Override
-    public boolean removeKeypair(String s) {
-        throw new NotImplementedException();
+    public boolean removeKeypair(String alias) {
+        return localKeyStore.removeKeyPair(alias);
     }
 
     @Override

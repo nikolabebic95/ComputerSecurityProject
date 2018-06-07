@@ -72,3 +72,6 @@ fabric.properties
 
 # Editor-based Rest Client
 .idea/httpRequests
+
+# Local key store
+local_key_store.p12
