@@ -63,13 +63,13 @@ public class MyCode extends CodeV3 {
     }
 
     @Override
-    public boolean importKeypair(String s, String s1, String s2) {
-        throw new NotImplementedException();
+    public boolean importKeypair(String alias, String file, String password) {
+        return localKeyStore.importKeyPair(alias, file, password.toCharArray());
     }
 
     @Override
-    public boolean exportKeypair(String s, String s1, String s2) {
-        throw new NotImplementedException();
+    public boolean exportKeypair(String alias, String file, String password) {
+        return localKeyStore.exportKeyPair(alias, file, password.toCharArray());
     }
 
     @Override

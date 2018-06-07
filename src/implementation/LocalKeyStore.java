@@ -6,8 +6,11 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.security.*;
+import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Enumeration;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -104,6 +107,57 @@ class LocalKeyStore {
             keyStoreImpl.deleteEntry(alias);
             return true;
         } catch (KeyStoreException e) {
+            logException(e);
+            return false;
+        }
+    }
+
+    // endregion
+
+    // region Import/export
+
+    boolean importKeyPair(String alias, String file, char[] password) {
+        try {
+            KeyStore temp = KeyStore.getInstance("PKCS12");
+            try (FileInputStream fis = new FileInputStream(file)) {
+                temp.load(fis, password);
+            }
+
+            ArrayList<String> aliases = Collections.list(temp.aliases());
+            aliases.forEach(importedAlias -> {
+                try {
+                    Key key = temp.getKey(importedAlias, password);
+                    Certificate[] chain = temp.getCertificateChain(importedAlias);
+                    keyStoreImpl.setKeyEntry(alias, key, null, chain);
+                } catch (KeyStoreException | NoSuchAlgorithmException | UnrecoverableKeyException e) {
+                    logException(e);
+                }
+            });
+
+            saveLocalKeyStoreToFile();
+            return true;
+        } catch (KeyStoreException | IOException | CertificateException | NoSuchAlgorithmException e) {
+            logException(e);
+            return false;
+        }
+    }
+
+    boolean exportKeyPair(String alias, String file, char[] password) {
+        try {
+            KeyStore temp = KeyStore.getInstance("PKCS12");
+            temp.load(null, password);
+
+            Key key = keyStoreImpl.getKey(alias, null);
+            Certificate[] chain = keyStoreImpl.getCertificateChain(alias);
+
+            temp.setKeyEntry(alias, key, password, chain);
+
+            try (FileOutputStream fos = new FileOutputStream(file)) {
+                temp.store(fos, password);
+            }
+
+            return true;
+        } catch (KeyStoreException | CertificateException | NoSuchAlgorithmException | IOException | UnrecoverableKeyException e) {
             logException(e);
             return false;
         }
