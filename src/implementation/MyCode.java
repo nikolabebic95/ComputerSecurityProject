@@ -3,6 +3,7 @@ package implementation;
 import code.GuiException;
 import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 import x509.v3.CodeV3;
+import x509.v3.GuiV3;
 
 import java.security.cert.X509Certificate;
 import java.util.Enumeration;
@@ -54,7 +55,12 @@ public class MyCode extends CodeV3 {
 
     @Override
     public boolean saveKeypair(String alias) {
-        return localKeyStore.generateKeyPair(alias);
+        try {
+            return localKeyStore.generateKeyPair(alias, Integer.parseInt(access.getPublicKeyParameter()), access);
+        } catch (NumberFormatException e) {
+            GuiV3.reportError("RSA parameter is not an integer");
+            return false;
+        }
     }
 
     @Override
