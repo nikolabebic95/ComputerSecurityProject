@@ -277,6 +277,10 @@ class LocalKeyStore {
 
     // region Utilities
 
+    private String getProperSubjectIssuerString(String issuer) {
+        return issuer.replaceAll(" *, *", ",");
+    }
+
     public boolean canSign(String alias) {
         try {
             X509Certificate certificate = (X509Certificate) keyStoreImpl.getCertificate(alias);
@@ -294,6 +298,16 @@ class LocalKeyStore {
         } catch (KeyStoreException e) {
             logException(e);
             return false;
+        }
+    }
+
+    public String getSubjectInfo(String alias) {
+        try {
+            X509Certificate certificate = (X509Certificate)keyStoreImpl.getCertificate(alias);
+            return getProperSubjectIssuerString(certificate.getSubjectDN().toString());
+        } catch (KeyStoreException e) {
+            logException(e);
+            return null;
         }
     }
 

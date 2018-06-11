@@ -114,8 +114,8 @@ public class MyCode extends CodeV3 {
     }
 
     @Override
-    public String getSubjectInfo(String s) {
-        throw new NotImplementedException();
+    public String getSubjectInfo(String alias) {
+        return localKeyStore.getSubjectInfo(alias);
     }
 
     @Override
