@@ -99,15 +99,19 @@ public final class CertificateFactory {
         map.put("ediParty", GeneralName.dNSName);
 
         String[] alternativeNames = gui.getAlternativeName(Constants.IAN);
-        GeneralName[] generalNames = new GeneralName[alternativeNames.length];
 
-        for (int i = 0; i < alternativeNames.length; i++) {
-            String[] parts = alternativeNames[i].split("=");
-            generalNames[i] = new GeneralName(map.get(parts[0]), parts[1]);
+        if (alternativeNames.length > 0) {
+            alternativeNames = alternativeNames[0].split(";");
+            GeneralName[] generalNames = new GeneralName[alternativeNames.length];
+
+            for (int i = 0; i < alternativeNames.length; i++) {
+                String[] parts = alternativeNames[i].split("=");
+                generalNames[i] = new GeneralName(map.get(parts[0]), parts[1]);
+            }
+
+            GeneralNames ret = new GeneralNames(generalNames);
+            builder.addExtension(Extension.issuerAlternativeName, gui.isCritical(Constants.IAN), ret);
         }
-
-        GeneralNames ret = new GeneralNames(generalNames);
-        builder.addExtension(Extension.inhibitAnyPolicy, gui.isCritical(Constants.IAN), ret);
     }
 
     private static void inhibitAnyPolicy(JcaX509v3CertificateBuilder builder, GuiV3 gui) throws CertIOException {

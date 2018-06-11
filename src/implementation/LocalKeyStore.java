@@ -90,7 +90,9 @@ class LocalKeyStore {
     }
 
     int verifyCertificate(X509Certificate certificate) {
-        throw new NotImplementedException();
+        // throw new NotImplementedException();
+        // TODO: Implement
+        return 0;
     }
 
     public boolean generateKeyPair(String alias, int seed, GuiV3 gui) {
