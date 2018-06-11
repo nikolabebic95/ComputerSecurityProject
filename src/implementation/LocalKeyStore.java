@@ -1,17 +1,18 @@
 package implementation;
 
+import gui.Constants;
+import org.bouncycastle.util.io.pem.PemObject;
+import org.bouncycastle.util.io.pem.PemWriter;
 import x509.v3.GuiV3;
 
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.*;
+import java.security.cert.*;
 import java.security.cert.Certificate;
-import java.security.cert.CertificateException;
-import java.security.cert.X509Certificate;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.logging.Level;
@@ -24,6 +25,15 @@ class LocalKeyStore {
     private static final String FILE_NAME = "local_key_store.p12";
     private static final char[] PASSWORD = "pass".toCharArray();
     private static final SecureRandom random = new SecureRandom();
+    private static CertificateFactory factory;
+
+    static {
+        try {
+            factory = CertificateFactory.getInstance("X.509");
+        } catch (CertificateException e) {
+            System.exit(1);
+        }
+    }
 
     // endregion
 
@@ -199,6 +209,68 @@ class LocalKeyStore {
             logException(e);
             return false;
         }
+    }
+
+    boolean importCertificate(String file, String alias) {
+        try (FileInputStream fis = new FileInputStream(file)) {
+            try (DataInputStream dis = new DataInputStream(fis)) {
+                byte[] bytes = new byte[dis.available()];
+                dis.readFully(bytes);
+                try (ByteArrayInputStream bis = new ByteArrayInputStream(bytes)) {
+                    Collection<? extends Certificate> certificates = factory.generateCertificates(bis);
+                    certificates.forEach(certificate -> {
+                        try {
+                            keyStoreImpl.setCertificateEntry(alias, certificate);
+                            saveLocalKeyStoreToFile();
+                        } catch (KeyStoreException e) {
+                            logException(e);
+                        }
+                    });
+
+                    return true;
+                }
+            }
+        } catch (IOException | CertificateException e) {
+            logException(e);
+        }
+        return false;
+    }
+
+    boolean exportCertificate(String file, String alias, int encoding, int format) {
+        try {
+            if (encoding == Constants.DER) {
+                if (format == Constants.HEAD) {
+                    try (FileOutputStream fos = new FileOutputStream(file)) {
+                        byte[] certificate = keyStoreImpl.getCertificate(alias).getEncoded();
+                        fos.write(certificate);
+                        return true;
+                    }
+                }
+            } else if (encoding == Constants.PEM) {
+                if (format == Constants.HEAD) {
+                    try (FileWriter fw = new FileWriter(file)) {
+                        try (PemWriter pw = new PemWriter(fw)) {
+                            byte[] certificate = keyStoreImpl.getCertificate(alias).getEncoded();
+                            pw.writeObject(new PemObject("CERTIFICATE", certificate));
+                            return true;
+                        }
+                    }
+                } else if (format == Constants.CHAIN) {
+                    Certificate[] chain = keyStoreImpl.getCertificateChain(alias);
+                    try (FileWriter fw = new FileWriter(file)) {
+                        try (PemWriter pw = new PemWriter(fw)) {
+                            for (Certificate certificate : chain) {
+                                pw.writeObject(new PemObject("CERTIFICATE", certificate.getEncoded()));
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (IOException | KeyStoreException | CertificateEncodingException e) {
+            logException(e);
+        }
+
+        return false;
     }
 
     // endregion

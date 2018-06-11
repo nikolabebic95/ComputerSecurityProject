@@ -79,13 +79,13 @@ public class MyCode extends CodeV3 {
     }
 
     @Override
-    public boolean importCertificate(String s, String s1) {
-        throw new NotImplementedException();
+    public boolean importCertificate(String file, String alias) {
+        return localKeyStore.importCertificate(file, alias.toLowerCase());
     }
 
     @Override
-    public boolean exportCertificate(String s, String s1, int i, int i1) {
-        throw new NotImplementedException();
+    public boolean exportCertificate(String file, String alias, int encoding, int format) {
+        return localKeyStore.exportCertificate(file, alias, encoding, format);
     }
 
     @Override
