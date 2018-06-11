@@ -274,4 +274,28 @@ class LocalKeyStore {
     }
 
     // endregion
+
+    // region Utilities
+
+    public boolean canSign(String alias) {
+        try {
+            X509Certificate certificate = (X509Certificate) keyStoreImpl.getCertificate(alias);
+            if (certificate.getBasicConstraints() == -1) {
+                // Not Certificate Authority
+                return false;
+            }
+
+            boolean[] keyUsage = certificate.getKeyUsage();
+            if (keyUsage == null) {
+                return false;
+            }
+
+            return keyUsage[Constants.KEY_CERT_SIGN];
+        } catch (KeyStoreException e) {
+            logException(e);
+            return false;
+        }
+    }
+
+    // endregion
 }

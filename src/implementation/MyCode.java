@@ -109,8 +109,8 @@ public class MyCode extends CodeV3 {
     }
 
     @Override
-    public boolean canSign(String s) {
-        throw new NotImplementedException();
+    public boolean canSign(String alias) {
+        return localKeyStore.canSign(alias);
     }
 
     @Override
