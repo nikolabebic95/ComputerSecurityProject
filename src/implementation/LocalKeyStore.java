@@ -6,6 +6,8 @@ import x509.v3.GuiV3;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.security.*;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
@@ -44,7 +46,9 @@ class LocalKeyStore {
         try {
             keyStoreImpl = KeyStore.getInstance("pkcs12");
             keyStoreImpl.load(null, PASSWORD);
-            saveLocalKeyStoreToFile();
+            if (!Files.exists(Paths.get(FILE_NAME))) {
+                saveLocalKeyStoreToFile();
+            }
         } catch (KeyStoreException | CertificateException | NoSuchAlgorithmException | IOException e) {
             logException(e);
         }
