@@ -278,7 +278,7 @@ class LocalKeyStore {
     // region Utilities
 
     private String getProperSubjectIssuerString(String issuer) {
-        return issuer.replaceAll(" *, *", ",");
+        return issuer.replaceAll("\\s*,\\s*", ",");
     }
 
     public boolean canSign(String alias) {
