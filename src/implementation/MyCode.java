@@ -50,7 +50,7 @@ public class MyCode extends CodeV3 {
         }
 
         guiHelper.show(certificate);
-        return localKeyStore.verifyCertificate(certificate);
+        return localKeyStore.verifyCertificate(certificate, alias);
     }
 
     @Override
