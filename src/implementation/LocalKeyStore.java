@@ -1,6 +1,5 @@
 package implementation;
 
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 import x509.v3.GuiV3;
 
 import java.io.FileInputStream;
@@ -131,7 +130,7 @@ class LocalKeyStore {
             keyPairGenerator.initialize(seed, random);
             KeyPair generated = keyPairGenerator.generateKeyPair();
             Certificate[] chain = new Certificate[1];
-            chain[0] = CertificateFactory.createCertificateFromKeyPair(generated, gui);
+            chain[0] = CertificateCreator.createCertificateFromKeyPair(generated, gui);
             keyStoreImpl.setKeyEntry(alias, generated.getPrivate(), null, chain);
             saveLocalKeyStoreToFile();
             return true;
