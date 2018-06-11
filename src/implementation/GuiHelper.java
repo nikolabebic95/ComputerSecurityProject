@@ -80,6 +80,8 @@ class GuiHelper {
         String publicKeyAlgorithm = certificate.getPublicKey().getAlgorithm();
         gui.setPublicKeyAlgorithm(publicKeyAlgorithm);
         gui.setSubjectSignatureAlgorithm(publicKeyAlgorithm);
+        gui.setIssuer(certificate.getIssuerDN().toString());
+        gui.setIssuerSignatureAlgorithm(publicKeyAlgorithm);
         // endregion
 
         // region Criticals
