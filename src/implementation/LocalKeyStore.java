@@ -286,11 +286,8 @@ class LocalKeyStore {
             }
 
             boolean[] keyUsage = certificate.getKeyUsage();
-            if (keyUsage == null) {
-                return false;
-            }
 
-            return keyUsage[Constants.KEY_CERT_SIGN];
+            return keyUsage != null && keyUsage[Constants.KEY_CERT_SIGN];
         } catch (KeyStoreException e) {
             logException(e);
             return false;
