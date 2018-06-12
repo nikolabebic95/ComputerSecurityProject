@@ -70,8 +70,8 @@ class GuiHelper {
 
     public void show(X509Certificate certificate) {
         // region Basics
-        gui.setSubject(certificate.getSubjectDN().toString());
-        gui.setIssuer(certificate.getIssuerDN().toString());
+        gui.setSubject(StringUtility.getProperSubjectIssuerString(certificate.getSubjectDN().toString()));
+        gui.setIssuer(StringUtility.getProperSubjectIssuerString(certificate.getIssuerDN().toString()));
         gui.setVersion(Constants.V3);
         gui.setSerialNumber(certificate.getSerialNumber().toString());
         gui.setNotBefore(certificate.getNotBefore());
