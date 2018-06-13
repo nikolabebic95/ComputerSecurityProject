@@ -274,6 +274,8 @@ class LocalKeyStore {
                             for (Certificate certificate : chain) {
                                 pw.writeObject(new PemObject("CERTIFICATE", certificate.getEncoded()));
                             }
+
+                            return true;
                         }
                     }
                 }
@@ -340,12 +342,12 @@ class LocalKeyStore {
 
     public boolean importCaReply(String file, String alias) {
         try (FileInputStream fis = new FileInputStream(file)) {
-            Collection<? extends Certificate> chain = CertificateFactory.getInstance("X.509", "BC").generateCertificates(fis);
+            Collection<? extends Certificate> chain = CertificateFactory.getInstance("X.509").generateCertificates(fis);
             Key key = keyStoreImpl.getKey(alias, null);
             keyStoreImpl.deleteEntry(alias);
             keyStoreImpl.setKeyEntry(alias, key, null, chain.toArray(new Certificate[chain.size()]));
             return true;
-        } catch (IOException | CertificateException | NoSuchProviderException | NoSuchAlgorithmException | UnrecoverableKeyException | KeyStoreException e) {
+        } catch (IOException | CertificateException | NoSuchAlgorithmException | UnrecoverableKeyException | KeyStoreException e) {
             logException(e);
             return false;
         }
@@ -388,6 +390,6 @@ class LocalKeyStore {
             return null;
         }
     }
-    
+
     // endregion
 }
