@@ -25,6 +25,7 @@ import java.math.BigInteger;
 import java.security.KeyPair;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 
@@ -45,17 +46,17 @@ public final class CertificateCreator {
 
     }
 
-    private static X500Name getSubject(GuiV3 gui) {
+    private static X500Name getSubject(String commonName, String organization, String organizationUnit, String locality, String state, String country) {
         X500NameBuilder ret = new X500NameBuilder();
 
         HashMap<ASN1ObjectIdentifier, String> map = new HashMap<>();
 
-        map.put(BCStyle.CN, gui.getSubjectCommonName());
-        map.put(BCStyle.O, gui.getSubjectOrganization());
-        map.put(BCStyle.OU, gui.getSubjectOrganizationUnit());
-        map.put(BCStyle.L, gui.getSubjectLocality());
-        map.put(BCStyle.ST, gui.getSubjectState());
-        map.put(BCStyle.C, gui.getSubjectCountry());
+        map.put(BCStyle.CN, commonName);
+        map.put(BCStyle.O, organization);
+        map.put(BCStyle.OU, organizationUnit);
+        map.put(BCStyle.L, locality);
+        map.put(BCStyle.ST, state);
+        map.put(BCStyle.C, country);
 
         map.forEach((key, value) -> {
             if (!value.isEmpty()) {
@@ -64,6 +65,16 @@ public final class CertificateCreator {
         });
 
         return ret.build();
+    }
+
+    private static X500Name getSubject(GuiV3 gui) {
+        return getSubject(
+                gui.getSubjectCommonName(),
+                gui.getSubjectOrganization(),
+                gui.getSubjectOrganizationUnit(),
+                gui.getSubjectLocality(),
+                gui.getSubjectState(),
+                gui.getSubjectCountry());
     }
 
     private static void keyUsage(JcaX509v3CertificateBuilder builder, GuiV3 gui) throws CertIOException {
@@ -142,5 +153,28 @@ public final class CertificateCreator {
         } catch (NumberFormatException | IOException | OperatorCreationException | CertificateException e) {
             return null;
         }
+    }
+
+    public static X500Name getName(String subject) {
+        String[] arr = new String[6];
+        for (int i = 0; i < 6; i++) {
+            arr[i] = "";
+        }
+
+        HashMap<String, Integer> map = new HashMap<>();
+        map.put("CN", 0);
+        map.put("O", 1);
+        map.put("OU", 2);
+        map.put("L", 3);
+        map.put("ST", 4);
+        map.put("C", 5);
+
+        String[] parts = subject.split(",");
+        for (String part : parts) {
+            String[] pair = part.split("=");
+            arr[map.get(pair[0])] = pair[1];
+        }
+
+        return getSubject(arr[0], arr[1], arr[2], arr[3], arr[4], arr[5]);
     }
 }

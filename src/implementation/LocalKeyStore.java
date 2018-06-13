@@ -1,6 +1,17 @@
 package implementation;
 
 import gui.Constants;
+import org.bouncycastle.asn1.x500.X500Name;
+import org.bouncycastle.asn1.x509.AlgorithmIdentifier;
+import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
+import org.bouncycastle.crypto.params.AsymmetricKeyParameter;
+import org.bouncycastle.crypto.util.PrivateKeyFactory;
+import org.bouncycastle.operator.*;
+import org.bouncycastle.operator.bc.BcRSAContentSignerBuilder;
+import org.bouncycastle.operator.jcajce.JcaContentVerifierProviderBuilder;
+import org.bouncycastle.pkcs.PKCS10CertificationRequest;
+import org.bouncycastle.pkcs.PKCS10CertificationRequestBuilder;
+import org.bouncycastle.pkcs.PKCSException;
 import org.bouncycastle.util.io.pem.PemObject;
 import org.bouncycastle.util.io.pem.PemWriter;
 import x509.v3.GuiV3;
@@ -271,6 +282,55 @@ class LocalKeyStore {
         }
 
         return false;
+    }
+
+    // endregion
+
+    // region CSR
+
+    public boolean exportCsr(String file, String alias, String algorithm) {
+        try {
+            X509Certificate certificate = (X509Certificate) keyStoreImpl.getCertificate(alias);
+
+            X500Name name = CertificateCreator.getName(StringUtility.getProperSubjectIssuerString(certificate.getSubjectDN().toString()));
+            SubjectPublicKeyInfo info = SubjectPublicKeyInfo.getInstance(certificate.getPublicKey().getEncoded());
+            PKCS10CertificationRequestBuilder builder = new PKCS10CertificationRequestBuilder(name, info);
+            Key key = keyStoreImpl.getKey(alias, null);
+            AlgorithmIdentifier signature = new DefaultSignatureAlgorithmIdentifierFinder().find(algorithm);
+            AlgorithmIdentifier digest = new DefaultDigestAlgorithmIdentifierFinder().find(signature);
+            AsymmetricKeyParameter parameter = PrivateKeyFactory.createKey(key.getEncoded());
+            ContentSigner signer = new BcRSAContentSignerBuilder(signature, digest).build(parameter);
+            PKCS10CertificationRequest request = builder.build(signer);
+
+            try (FileOutputStream fos = new FileOutputStream(file)) {
+                fos.write(request.getEncoded());
+            }
+
+            return true;
+        } catch (KeyStoreException | NoSuchAlgorithmException | UnrecoverableKeyException | IOException | OperatorCreationException e) {
+            logException(e);
+            return false;
+        }
+    }
+
+    public String importCsr(String file) {
+        try (FileInputStream fis = new FileInputStream(file)) {
+            try (DataInputStream dis = new DataInputStream(fis)) {
+                byte[] data = new byte[dis.available()];
+                dis.readFully(data);
+                PKCS10CertificationRequest request = new PKCS10CertificationRequest(data);
+                ContentVerifierProvider provider = new JcaContentVerifierProviderBuilder().build(request.getSubjectPublicKeyInfo());
+                if (request.isSignatureValid(provider)) {
+                    return StringUtility.getProperSubjectIssuerString(request.getSubject().toString());
+                }
+
+                GuiV3.reportError("CSR does not have a valid signature");
+                return null;
+            }
+        } catch (IOException | OperatorCreationException | PKCSException e) {
+            logException(e);
+            return null;
+        }
     }
 
     // endregion

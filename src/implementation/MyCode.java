@@ -89,13 +89,13 @@ public class MyCode extends CodeV3 {
     }
 
     @Override
-    public boolean exportCSR(String s, String s1, String s2) {
-        throw new NotImplementedException();
+    public boolean exportCSR(String file, String alias, String algorithm) {
+        return localKeyStore.exportCsr(file, alias, algorithm);
     }
 
     @Override
-    public String importCSR(String s) {
-        throw new NotImplementedException();
+    public String importCSR(String file) {
+        return localKeyStore.importCsr(file);
     }
 
     @Override
