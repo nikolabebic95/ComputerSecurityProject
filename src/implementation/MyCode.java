@@ -104,8 +104,10 @@ public class MyCode extends CodeV3 {
     }
 
     @Override
-    public boolean importCAReply(String s, String s1) {
-        throw new NotImplementedException();
+    public boolean importCAReply(String file, String alias) {
+        boolean ret = localKeyStore.importCaReply(file, alias);
+        loadKeypair(alias);
+        return ret;
     }
 
     @Override
@@ -120,11 +122,11 @@ public class MyCode extends CodeV3 {
 
     @Override
     public String getCertPublicKeyAlgorithm(String s) {
-        throw new NotImplementedException();
+        return "RSA";
     }
 
     @Override
-    public String getCertPublicKeyParameter(String s) {
-        throw new NotImplementedException();
+    public String getCertPublicKeyParameter(String alias) {
+        return localKeyStore.getCertificatePublicKeyParameter(alias);
     }
 }

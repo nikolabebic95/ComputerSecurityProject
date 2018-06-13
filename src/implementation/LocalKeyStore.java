@@ -22,6 +22,7 @@ import java.nio.file.Paths;
 import java.security.*;
 import java.security.cert.*;
 import java.security.cert.Certificate;
+import java.security.interfaces.RSAPublicKey;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -337,6 +338,19 @@ class LocalKeyStore {
 
     // region Utilities
 
+    public boolean importCaReply(String file, String alias) {
+        try (FileInputStream fis = new FileInputStream(file)) {
+            Collection<? extends Certificate> chain = CertificateFactory.getInstance("X.509", "BC").generateCertificates(fis);
+            Key key = keyStoreImpl.getKey(alias, null);
+            keyStoreImpl.deleteEntry(alias);
+            keyStoreImpl.setKeyEntry(alias, key, null, chain.toArray(new Certificate[chain.size()]));
+            return true;
+        } catch (IOException | CertificateException | NoSuchProviderException | NoSuchAlgorithmException | UnrecoverableKeyException | KeyStoreException e) {
+            logException(e);
+            return false;
+        }
+    }
+
     public boolean canSign(String alias) {
         try {
             X509Certificate certificate = (X509Certificate) keyStoreImpl.getCertificate(alias);
@@ -364,5 +378,16 @@ class LocalKeyStore {
         }
     }
 
+    public String getCertificatePublicKeyParameter(String alias) {
+        try {
+            Certificate certificate = keyStoreImpl.getCertificate(alias);
+            RSAPublicKey key = (RSAPublicKey)certificate.getPublicKey();
+            return key.getModulus().bitLength() + "";
+        } catch (KeyStoreException e) {
+            logException(e);
+            return null;
+        }
+    }
+    
     // endregion
 }
