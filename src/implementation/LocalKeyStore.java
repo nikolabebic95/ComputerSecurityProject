@@ -114,6 +114,8 @@ class LocalKeyStore {
                 if (certificate.getBasicConstraints() != -1) {
                     return ConstantsHelper.LOAD_SIGNED;
                 }
+
+                return ConstantsHelper.LOAD_NOT_SIGNED;
             } else {
                 for (int i = 0; i < chain.length - 1; i++) {
                     chain[i].verify(chain[i + 1].getPublicKey());
@@ -130,8 +132,6 @@ class LocalKeyStore {
         } catch (CertificateException | NoSuchAlgorithmException | InvalidKeyException | NoSuchProviderException | SignatureException e) {
             return ConstantsHelper.LOAD_NOT_SIGNED;
         }
-
-        return ConstantsHelper.LOAD_ERROR;
     }
 
     public boolean generateKeyPair(String alias, int seed, GuiV3 gui) {
