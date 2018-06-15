@@ -4,6 +4,12 @@ import gui.Constants;
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x509.AlgorithmIdentifier;
 import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
+import org.bouncycastle.cert.X509CertificateHolder;
+import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
+import org.bouncycastle.cms.CMSException;
+import org.bouncycastle.cms.CMSSignedData;
+import org.bouncycastle.cms.SignerInformation;
+import org.bouncycastle.cms.jcajce.JcaSimpleSignerInfoVerifierBuilder;
 import org.bouncycastle.crypto.params.AsymmetricKeyParameter;
 import org.bouncycastle.crypto.util.PrivateKeyFactory;
 import org.bouncycastle.operator.*;
@@ -12,6 +18,7 @@ import org.bouncycastle.operator.jcajce.JcaContentVerifierProviderBuilder;
 import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 import org.bouncycastle.pkcs.PKCS10CertificationRequestBuilder;
 import org.bouncycastle.pkcs.PKCSException;
+import org.bouncycastle.util.Selector;
 import org.bouncycastle.util.io.pem.PemObject;
 import org.bouncycastle.util.io.pem.PemWriter;
 import x509.v3.GuiV3;
@@ -23,10 +30,7 @@ import java.security.*;
 import java.security.cert.*;
 import java.security.cert.Certificate;
 import java.security.interfaces.RSAPublicKey;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Enumeration;
+import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -340,12 +344,64 @@ class LocalKeyStore {
 
     // region Utilities
 
+    private boolean verifyCaReply(String file, String alias) {
+        JcaX509CertificateConverter converter = new JcaX509CertificateConverter();
+
+        try (FileInputStream fis = new FileInputStream(file)) {
+            try (DataInputStream dis = new DataInputStream(fis)) {
+                byte[] bytes = new byte[dis.available()];
+                dis.readFully(bytes);
+
+                CMSSignedData signedData = new CMSSignedData(bytes);
+                Collection<SignerInformation> collection = signedData.getSignerInfos().getSigners();
+
+                for (SignerInformation signer : collection) {
+                    @SuppressWarnings({"unchecked"})
+                    Selector<X509CertificateHolder> selector = (Selector<X509CertificateHolder>) signer.getSID();
+                    Collection<X509CertificateHolder> holders = signedData.getCertificates().getMatches(selector);
+
+                    Optional<X509CertificateHolder> first = holders.stream().findFirst();
+                    if (!first.isPresent()) {
+                        continue;
+                    }
+
+                    X509CertificateHolder holder = first.get();
+                    X509Certificate certificate = converter.getCertificate(holder);
+
+                    if (!signer.verify(new JcaSimpleSignerInfoVerifierBuilder().build(certificate))) {
+                        return false;
+                    }
+                }
+
+                Collection<X509CertificateHolder> holders = signedData.getCertificates().getMatches(null);
+                Optional<X509CertificateHolder> first = holders.stream().findFirst();
+                if (!first.isPresent()) {
+                    return false;
+                }
+
+                X509CertificateHolder holder = first.get();
+                X509Certificate certificate = converter.getCertificate(holder);
+                X509Certificate toVerify = (X509Certificate) keyStoreImpl.getCertificate(alias);
+
+                return toVerify.getSubjectX500Principal().equals(certificate.getSubjectX500Principal());
+            }
+        } catch (IOException | CMSException | CertificateException | OperatorCreationException | KeyStoreException e) {
+            logException(e);
+            return false;
+        }
+    }
+
     public boolean importCaReply(String file, String alias) {
+        if (!verifyCaReply(file, alias)) {
+            GuiV3.reportError("CA Reply not valid");
+            return false;
+        }
+
         try (FileInputStream fis = new FileInputStream(file)) {
             Collection<? extends Certificate> chain = CertificateFactory.getInstance("X.509").generateCertificates(fis);
             Key key = keyStoreImpl.getKey(alias, null);
-            keyStoreImpl.deleteEntry(alias);
             keyStoreImpl.setKeyEntry(alias, key, null, chain.toArray(new Certificate[chain.size()]));
+            saveLocalKeyStoreToFile();
             return true;
         } catch (IOException | CertificateException | NoSuchAlgorithmException | UnrecoverableKeyException | KeyStoreException e) {
             logException(e);
