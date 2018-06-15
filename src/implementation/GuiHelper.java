@@ -9,6 +9,7 @@ import x509.v3.GuiV3;
 import java.io.IOException;
 import java.security.cert.CertificateParsingException;
 import java.security.cert.X509Certificate;
+import java.security.interfaces.RSAPublicKey;
 import java.util.*;
 
 class GuiHelper {
@@ -70,31 +71,33 @@ class GuiHelper {
 
     public void show(X509Certificate certificate) {
         // region Basics
-        gui.setSubject(StringUtility.getProperSubjectIssuerString(certificate.getSubjectDN().toString()));
-        gui.setIssuer(StringUtility.getProperSubjectIssuerString(certificate.getIssuerDN().toString()));
         gui.setVersion(Constants.V3);
+        gui.setSubject(StringUtility.getProperSubjectIssuerString(certificate.getSubjectDN().toString()));
         gui.setSerialNumber(certificate.getSerialNumber().toString());
         gui.setNotBefore(certificate.getNotBefore());
         gui.setNotAfter(certificate.getNotAfter());
-        gui.setPublicKeyDigestAlgorithm(certificate.getSigAlgName());
         String publicKeyAlgorithm = certificate.getPublicKey().getAlgorithm();
         gui.setPublicKeyAlgorithm(publicKeyAlgorithm);
+        gui.setPublicKeyParameter(((RSAPublicKey)certificate.getPublicKey()).getModulus().bitLength() + "");
+        gui.setPublicKeyDigestAlgorithm(certificate.getSigAlgName());
         gui.setSubjectSignatureAlgorithm(publicKeyAlgorithm);
-        gui.setIssuer(certificate.getIssuerDN().toString());
+        gui.setIssuer(StringUtility.getProperSubjectIssuerString(certificate.getIssuerDN().toString()));
         gui.setIssuerSignatureAlgorithm(publicKeyAlgorithm);
         // endregion
 
         // region Criticals
         Set<String> criticals = certificate.getCriticalExtensionOIDs();
-        criticals.forEach(str -> {
-            if (str.equals(Extension.keyUsage.toString())) {
-                gui.setCritical(Constants.KU, true);
-            } else if (str.equals(Extension.issuerAlternativeName.toString())) {
-                gui.setCritical(Constants.IAN, true);
-            } else if (str.equals(Extension.inhibitAnyPolicy.toString())) {
-                gui.setCritical(Constants.IAP, true);
-            }
-        });
+        if (criticals != null && !criticals.isEmpty()) {
+            criticals.forEach(str -> {
+                if (str.equals(Extension.keyUsage.toString())) {
+                    gui.setCritical(Constants.KU, true);
+                } else if (str.equals(Extension.issuerAlternativeName.toString())) {
+                    gui.setCritical(Constants.IAN, true);
+                } else if (str.equals(Extension.inhibitAnyPolicy.toString())) {
+                    gui.setCritical(Constants.IAP, true);
+                }
+            });
+        }
         // endregion
 
         keyUsage(certificate);

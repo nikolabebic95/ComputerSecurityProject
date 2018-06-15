@@ -145,8 +145,8 @@ public final class CertificateCreator {
 
             AlgorithmIdentifier signature = new DefaultSignatureAlgorithmIdentifierFinder().find(gui.getPublicKeyDigestAlgorithm());
             AlgorithmIdentifier digest = new DefaultDigestAlgorithmIdentifierFinder().find(signature);
-            AsymmetricKeyParameter privateAsymmetricKeyParameter = PrivateKeyFactory.createKey(keyPair.getPrivate().getEncoded());
-            ContentSigner signer = new BcRSAContentSignerBuilder(signature, digest).build(privateAsymmetricKeyParameter);
+            AsymmetricKeyParameter parameter = PrivateKeyFactory.createKey(keyPair.getPrivate().getEncoded());
+            ContentSigner signer = new BcRSAContentSignerBuilder(signature, digest).build(parameter);
 
             X509CertificateHolder holder = builder.build(signer);
             return new JcaX509CertificateConverter().getCertificate(holder);

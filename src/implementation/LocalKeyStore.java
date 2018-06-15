@@ -302,12 +302,10 @@ class LocalKeyStore {
             X500Name name = CertificateCreator.getName(StringUtility.getProperSubjectIssuerString(certificate.getSubjectDN().toString()));
             SubjectPublicKeyInfo info = SubjectPublicKeyInfo.getInstance(certificate.getPublicKey().getEncoded());
             PKCS10CertificationRequestBuilder builder = new PKCS10CertificationRequestBuilder(name, info);
-            Key key = keyStoreImpl.getKey(alias, null);
             AlgorithmIdentifier signature = new DefaultSignatureAlgorithmIdentifierFinder().find(algorithm);
             AlgorithmIdentifier digest = new DefaultDigestAlgorithmIdentifierFinder().find(signature);
-            AsymmetricKeyParameter parameter = PrivateKeyFactory.createKey(key.getEncoded());
-            ContentSigner signer = new BcRSAContentSignerBuilder(signature, digest).build(parameter);
-            PKCS10CertificationRequest request = builder.build(signer);
+            AsymmetricKeyParameter parameter = PrivateKeyFactory.createKey(keyStoreImpl.getKey(alias, null).getEncoded());
+            PKCS10CertificationRequest request = builder.build(new BcRSAContentSignerBuilder(signature, digest).build(parameter));
 
             try (FileOutputStream fos = new FileOutputStream(file)) {
                 fos.write(request.getEncoded());
