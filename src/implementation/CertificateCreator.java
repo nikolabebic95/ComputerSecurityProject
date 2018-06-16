@@ -77,7 +77,7 @@ public final class CertificateCreator {
                 gui.getSubjectCountry());
     }
 
-    private static void keyUsage(JcaX509v3CertificateBuilder builder, GuiV3 gui) throws CertIOException {
+    public static void keyUsage(JcaX509v3CertificateBuilder builder, GuiV3 gui) throws CertIOException {
         boolean[] usage = gui.getKeyUsage();
         HashMap<Integer, Integer> keyUsages = new HashMap<>(KEY_USAGES);
         boolean any = false;
@@ -96,7 +96,7 @@ public final class CertificateCreator {
         if (any) builder.addExtension(Extension.keyUsage, gui.isCritical(Constants.KU), returnUsage);
     }
 
-    private static void issuerAlternativeNames(JcaX509v3CertificateBuilder builder, GuiV3 gui) throws CertIOException {
+    public static void issuerAlternativeNames(JcaX509v3CertificateBuilder builder, GuiV3 gui) throws CertIOException {
         HashMap<String, Integer> map = new HashMap<>();
         map.put("dns", GeneralName.dNSName);
         map.put("rfc822", GeneralName.dNSName);
@@ -124,7 +124,7 @@ public final class CertificateCreator {
         }
     }
 
-    private static void inhibitAnyPolicy(JcaX509v3CertificateBuilder builder, GuiV3 gui) throws CertIOException {
+    public static void inhibitAnyPolicy(JcaX509v3CertificateBuilder builder, GuiV3 gui) throws CertIOException {
         if (gui.getInhibitAnyPolicy() && !gui.getSkipCerts().isEmpty()) {
             builder.addExtension(Extension.inhibitAnyPolicy, gui.isCritical(Constants.IAP), new ASN1Integer(new BigInteger(gui.getSkipCerts())));
         }

@@ -4,26 +4,33 @@ import gui.Constants;
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x509.AlgorithmIdentifier;
 import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
+import org.bouncycastle.cert.CertIOException;
 import org.bouncycastle.cert.X509CertificateHolder;
+import org.bouncycastle.cert.X509v3CertificateBuilder;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
-import org.bouncycastle.cms.CMSException;
-import org.bouncycastle.cms.CMSSignedData;
-import org.bouncycastle.cms.SignerInformation;
+import org.bouncycastle.cert.jcajce.JcaX509CertificateHolder;
+import org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder;
+import org.bouncycastle.cms.*;
 import org.bouncycastle.cms.jcajce.JcaSimpleSignerInfoVerifierBuilder;
 import org.bouncycastle.crypto.params.AsymmetricKeyParameter;
 import org.bouncycastle.crypto.util.PrivateKeyFactory;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.operator.*;
 import org.bouncycastle.operator.bc.BcRSAContentSignerBuilder;
+import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 import org.bouncycastle.operator.jcajce.JcaContentVerifierProviderBuilder;
 import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 import org.bouncycastle.pkcs.PKCS10CertificationRequestBuilder;
 import org.bouncycastle.pkcs.PKCSException;
+import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequest;
+import org.bouncycastle.util.CollectionStore;
 import org.bouncycastle.util.Selector;
 import org.bouncycastle.util.io.pem.PemObject;
 import org.bouncycastle.util.io.pem.PemWriter;
 import x509.v3.GuiV3;
 
 import java.io.*;
+import java.math.BigInteger;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.*;
@@ -38,6 +45,7 @@ class LocalKeyStore {
     // region Fields
 
     private KeyStore keyStoreImpl;
+    private PKCS10CertificationRequest request;
     private static final String FILE_NAME = "local_key_store.p12";
     private static final char[] PASSWORD = "pass".toCharArray();
     private static final SecureRandom random = new SecureRandom();
@@ -69,7 +77,7 @@ class LocalKeyStore {
 
     private void createKeyStore() {
         try {
-            keyStoreImpl = KeyStore.getInstance("pkcs12");
+            keyStoreImpl = KeyStore.getInstance("pkcs12", new BouncyCastleProvider());
             keyStoreImpl.load(null, PASSWORD);
             if (!Files.exists(Paths.get(FILE_NAME))) {
                 saveLocalKeyStoreToFile();
@@ -152,7 +160,7 @@ class LocalKeyStore {
 
     public boolean generateKeyPair(String alias, int seed, GuiV3 gui) {
         try {
-            KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");
+            KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA", new BouncyCastleProvider());
             keyPairGenerator.initialize(seed, random);
             KeyPair generated = keyPairGenerator.generateKeyPair();
             Certificate[] chain = new Certificate[1];
@@ -182,7 +190,7 @@ class LocalKeyStore {
 
     boolean importKeyPair(String alias, String file, char[] password) {
         try {
-            KeyStore temp = KeyStore.getInstance("PKCS12");
+            KeyStore temp = KeyStore.getInstance("PKCS12", new BouncyCastleProvider());
             try (FileInputStream fis = new FileInputStream(file)) {
                 temp.load(fis, password);
             }
@@ -208,7 +216,7 @@ class LocalKeyStore {
 
     boolean exportKeyPair(String alias, String file, char[] password) {
         try {
-            KeyStore temp = KeyStore.getInstance("PKCS12");
+            KeyStore temp = KeyStore.getInstance("PKCS12", new BouncyCastleProvider());
             temp.load(null, password);
 
             Key key = keyStoreImpl.getKey(alias, null);
@@ -324,6 +332,7 @@ class LocalKeyStore {
                 byte[] data = new byte[dis.available()];
                 dis.readFully(data);
                 PKCS10CertificationRequest request = new PKCS10CertificationRequest(data);
+                this.request = request; // signCsr needs this
                 ContentVerifierProvider provider = new JcaContentVerifierProviderBuilder().build(request.getSubjectPublicKeyInfo());
                 if (request.isSignatureValid(provider)) {
                     return StringUtility.getProperSubjectIssuerString(request.getSubject().toString());
@@ -338,12 +347,59 @@ class LocalKeyStore {
         }
     }
 
+    public boolean signCsr(String file, String alias, String algorithm, GuiV3 gui) {
+        PKCS10CertificationRequest request = this.request;
+        try {
+            X509Certificate certificate = (X509Certificate) keyStoreImpl.getCertificate(alias);
+            X500Name issuer = new JcaX509CertificateHolder(certificate).getSubject();
+            BigInteger serialNumber = new BigInteger(gui.getSerialNumber());
+            Date notBefore = gui.getNotBefore();
+            Date notAfter = gui.getNotAfter();
+            X500Name subject = request.getSubject();
+            PublicKey publicKey = new JcaPKCS10CertificationRequest(request).setProvider(new BouncyCastleProvider()).getPublicKey();
+
+            JcaX509v3CertificateBuilder builder = new JcaX509v3CertificateBuilder(issuer, serialNumber, notBefore, notAfter, subject, publicKey);
+
+            CertificateCreator.keyUsage(builder, gui);
+            CertificateCreator.issuerAlternativeNames(builder, gui);
+            CertificateCreator.inhibitAnyPolicy(builder, gui);
+
+            PrivateKey privateKey = (PrivateKey) keyStoreImpl.getKey(alias, null);
+            ContentSigner signer = new JcaContentSignerBuilder(algorithm).setProvider(new BouncyCastleProvider()).build(privateKey);
+
+            X509Certificate signed = new JcaX509CertificateConverter().getCertificate(builder.build(signer));
+
+            ArrayList<JcaX509CertificateHolder> chain = new ArrayList<>();
+            chain.add(new JcaX509CertificateHolder(signed));
+
+            for (Certificate c : keyStoreImpl.getCertificateChain(alias)) {
+                X509Certificate xc = (X509Certificate)c;
+                chain.add(new JcaX509CertificateHolder(xc));
+            }
+
+            CMSSignedDataGenerator generator = new CMSSignedDataGenerator();
+            generator.addCertificates(new CollectionStore<>(chain));
+
+            CMSTypedData typedData = new CMSProcessableByteArray(signed.getEncoded());
+            CMSSignedData signedData = generator.generate(typedData);
+
+            try (FileOutputStream fos = new FileOutputStream(file)) {
+                fos.write(signedData.getEncoded());
+            }
+
+            return true;
+        } catch (KeyStoreException | InvalidKeyException | NoSuchAlgorithmException | UnrecoverableKeyException | OperatorCreationException | CertificateException | CMSException | IOException e) {
+            logException(e);
+            return false;
+        }
+    }
+
     // endregion
 
     // region Utilities
 
     private boolean verifyCaReply(String file, String alias) {
-        JcaX509CertificateConverter converter = new JcaX509CertificateConverter();
+        JcaX509CertificateConverter converter = new JcaX509CertificateConverter().setProvider(new BouncyCastleProvider());
 
         try (FileInputStream fis = new FileInputStream(file)) {
             try (DataInputStream dis = new DataInputStream(fis)) {

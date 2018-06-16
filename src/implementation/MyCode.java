@@ -1,7 +1,6 @@
 package implementation;
 
 import code.GuiException;
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 import x509.v3.CodeV3;
 import x509.v3.GuiV3;
 
@@ -99,8 +98,8 @@ public class MyCode extends CodeV3 {
     }
 
     @Override
-    public boolean signCSR(String s, String s1, String s2) {
-        throw new NotImplementedException();
+    public boolean signCSR(String file, String alias, String algorithm) {
+        return localKeyStore.signCsr(file, alias, algorithm, access);
     }
 
     @Override
