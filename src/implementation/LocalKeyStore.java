@@ -333,7 +333,7 @@ class LocalKeyStore {
                 dis.readFully(data);
                 PKCS10CertificationRequest request = new PKCS10CertificationRequest(data);
                 this.request = request; // signCsr needs this
-                ContentVerifierProvider provider = new JcaContentVerifierProviderBuilder().build(request.getSubjectPublicKeyInfo());
+                ContentVerifierProvider provider = new JcaContentVerifierProviderBuilder().setProvider(new BouncyCastleProvider()).build(request.getSubjectPublicKeyInfo());
                 if (request.isSignatureValid(provider)) {
                     return StringUtility.getProperSubjectIssuerString(request.getSubject().toString());
                 }
